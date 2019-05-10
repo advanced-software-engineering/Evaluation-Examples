@@ -1,23 +1,22 @@
 package ch.uzh.ifi.seal.ase19.evaluation;
 
 import cc.kave.commons.model.events.IIDEEvent;
-import cc.kave.commons.model.events.completionevents.*;
+import cc.kave.commons.model.events.completionevents.CompletionEvent;
+import cc.kave.commons.model.events.completionevents.Context;
+import cc.kave.commons.model.events.completionevents.IProposal;
 import cc.kave.commons.model.naming.codeelements.IMemberName;
 import cc.kave.commons.model.naming.impl.v0.codeelements.MethodName;
-import cc.kave.commons.model.ssts.ISST;
-import cc.kave.commons.model.ssts.impl.SST;
 import cc.kave.commons.utils.io.IReadingArchive;
 import cc.kave.commons.utils.io.ReadingArchive;
 import ch.uzh.ifi.seal.ase19.core.IPersistenceManager;
 import ch.uzh.ifi.seal.ase19.core.InMemoryPersistenceManager;
-import ch.uzh.ifi.seal.ase19.core.models.*;
+import ch.uzh.ifi.seal.ase19.core.models.QuerySelection;
 import ch.uzh.ifi.seal.ase19.core.utils.IoHelper;
 import ch.uzh.ifi.seal.ase19.miner.ContextProcessor;
 import ch.uzh.ifi.seal.ase19.recommender.ExampleRecommender;
 import ch.uzh.ifi.seal.ase19.recommender.MethodCallRecommender;
 import ch.uzh.ifi.seal.ase19.recommender.SimilarityDto;
 import ch.uzh.ifi.seal.ase19.utils.EvaluationResult;
-import com.google.common.collect.Maps;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,7 +25,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 public class Evaluator {
 
@@ -47,8 +49,6 @@ public class Evaluator {
         ContextProcessor processor = new ContextProcessor(persistence);
         MethodCallRecommender recommender = new MethodCallRecommender(processor, persistence);
 
-        System.out.printf("%-30s%-30s\n", "Method name", "Similarity measure");
-        System.out.printf("%-30s%-30s\n", "------------", "--------------------");
         Set<String> zips = IoHelper.findAllZips(eventDirectory);
         List<EvaluationResult> evaluationResultList = new ArrayList<>();
         for (String zip : zips) {
@@ -76,14 +76,14 @@ public class Evaluator {
                     if (!(selection.getName() instanceof MethodName)) {
                         continue;
                     }
-                    String selectedMethod = ((MethodName)selection.getName()).getName();
+                    String selectedMethod = ((MethodName) selection.getName()).getName();
 
                     List<QuerySelection> querySelections = processor.run(c);
                     List<Integer> indexes = new ArrayList<>();
                     for (int i = 0; i < querySelections.size(); i++) {
                         if (querySelections.get(i) != null) {
-                            String test = querySelections.get(i).getSelection().getIdentifier();
-                            if (test.equals(selection.getName().getIdentifier())) {
+                            String test = querySelections.get(i).getSelection().getName();
+                            if (test.equals(((MethodName) selection.getName()).getName())) {
                                 indexes.add(i);
                             }
                         }
