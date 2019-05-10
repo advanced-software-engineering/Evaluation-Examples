@@ -12,6 +12,9 @@ reated by https://www.gitignore.io/api/java,maven,intellij
 .idea/**/dictionaries
 .idea/**/shelf
 
+# VCS
+.idea/vcs.xml
+
 # Generated files
 .idea/**/contentModel.xml
 
