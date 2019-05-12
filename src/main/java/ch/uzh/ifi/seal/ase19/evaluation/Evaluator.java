@@ -10,8 +10,10 @@ import cc.kave.commons.utils.io.IReadingArchive;
 import cc.kave.commons.utils.io.ReadingArchive;
 import ch.uzh.ifi.seal.ase19.core.IPersistenceManager;
 import ch.uzh.ifi.seal.ase19.core.InMemoryPersistenceManager;
+import ch.uzh.ifi.seal.ase19.core.models.Query;
 import ch.uzh.ifi.seal.ase19.core.models.QuerySelection;
 import ch.uzh.ifi.seal.ase19.core.utils.IoHelper;
+import ch.uzh.ifi.seal.ase19.core.utils.SSTUtils;
 import ch.uzh.ifi.seal.ase19.miner.ContextProcessor;
 import ch.uzh.ifi.seal.ase19.recommender.ExampleRecommender;
 import ch.uzh.ifi.seal.ase19.recommender.MethodCallRecommender;
@@ -25,10 +27,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class Evaluator {
 
@@ -47,7 +46,10 @@ public class Evaluator {
 
         IPersistenceManager persistence = new InMemoryPersistenceManager(modelDirectory);
         ContextProcessor processor = new ContextProcessor(persistence);
+        ContextProcessor completionProcessor = new CompletionEventContextProcessor(persistence);
         MethodCallRecommender recommender = new MethodCallRecommender(processor, persistence);
+
+        int counter = 0;
 
         Set<String> zips = IoHelper.findAllZips(eventDirectory);
         List<EvaluationResult> evaluationResultList = new ArrayList<>();
@@ -67,7 +69,7 @@ public class Evaluator {
                     Context c = ((CompletionEvent) e).context;
 
                     // We are only interested if the recommendation got applied
-                    if (!ce.getTerminatedState().name().equals("Applied") || ce.getSelections().size() == 0) {
+                    if (!ce.getTerminatedState().name().equals("Applied")) {
                         continue;
                     }
 
@@ -78,24 +80,38 @@ public class Evaluator {
                     }
                     String selectedMethod = ((MethodName) selection.getName()).getName();
 
-                    List<QuerySelection> querySelections = processor.run(c);
-                    List<Integer> indexes = new ArrayList<>();
-                    for (int i = 0; i < querySelections.size(); i++) {
-                        if (querySelections.get(i) != null) {
-                            String test = querySelections.get(i).getSelection().getName();
-                            if (test.equals(((MethodName) selection.getName()).getName())) {
-                                indexes.add(i);
+                    List<QuerySelection> completionEventQuerySelection = completionProcessor.run(c);
+
+                    Set<Pair<IMemberName, SimilarityDto>> result = null;
+                    if (completionEventQuerySelection.size() > 0) {
+                        Query query = completionEventQuerySelection.get(completionEventQuerySelection.size() - 1).getQuery();
+                        String requiredType = SSTUtils.getFullyQualifiedNameWithoutGenerics(((MethodName) selection.getName()).getReturnType().getFullName());
+                        query.setRequiredType(requiredType);
+                        String receiverType = SSTUtils.getFullyQualifiedNameWithoutGenerics(((MethodName) selection.getName()).getDeclaringType().getFullName());
+                        query.setReceiverType(receiverType);
+                        result = recommender.queryWithDetails(query);
+                    }else{
+                        List<QuerySelection> querySelections = processor.run(c);
+                        List<Integer> indexes = new ArrayList<>();
+                        for (int i = 0; i < querySelections.size(); i++) {
+                            if (querySelections.get(i) != null) {
+                                String test = querySelections.get(i).getSelection().getName();
+                                if (test.equals(((MethodName) selection.getName()).getName())) {
+                                    indexes.add(i);
+                                }
                             }
                         }
-                    }
-                    Set<Pair<IMemberName, SimilarityDto>> result = null;
-                    if (indexes.size() > 0) {
-                         result = recommender.queryWithDetails(querySelections.get(indexes.get(indexes.size() - 1)).getQuery());
+                        if (indexes.size() > 0) {
+                            result = recommender.queryWithDetails(querySelections.get(indexes.get(indexes.size() - 1)).getQuery());
+                        }
                     }
 
+                    counter++;
                     evaluationResultList.add(new EvaluationResult(selectedMethod, result));
                 }
             }
+
+            logger.info(counter + " CompletionEvent processed");
         }
         writeToCSV(evaluationResultList);
     }
