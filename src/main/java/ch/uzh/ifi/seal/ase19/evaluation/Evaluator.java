@@ -123,7 +123,7 @@ public class Evaluator {
             fileWriter.append("evaluated");
             fileWriter.append(",");
             fileWriter.append("selectedMethod");
-            for (int i = 0; i <= 10; i++) {
+            for (int i = 1; i <= 10; i++) {
                 fileWriter.append(",");
                 fileWriter.append("recommendedMethod_" + i);
                 fileWriter.append(",");

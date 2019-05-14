@@ -121,7 +121,7 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-# End of https://www.gitignore.io/api/java,maven,intellij
-
 # Evaluation Results
-/ASE_Evaluation.csv
+ASE_Evaluation.csv
+
+# End of https://www.gitignore.io/api/java,maven,intellij
