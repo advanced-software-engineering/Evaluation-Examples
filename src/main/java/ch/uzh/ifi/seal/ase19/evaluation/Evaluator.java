@@ -44,18 +44,51 @@ public class Evaluator {
 
         logger.info("Model directory is: " + modelDirectory + eventDirectory + "\n");
 
+        Set<String> zips = IoHelper.findAllZips(eventDirectory);
         IPersistenceManager persistence = new InMemoryPersistenceManager(modelDirectory);
         ContextProcessor processor = new ContextProcessor(persistence);
         ContextProcessor completionProcessor = new CompletionEventContextProcessor(persistence);
-        MethodCallRecommender recommender = new MethodCallRecommender(processor, persistence);
 
-        int counter = 0;
 
-        Set<String> zips = IoHelper.findAllZips(eventDirectory);
+        HashMap<String, Double> weights = new HashMap<>();
+        weights.put("receiverType", 1.0);
+        weights.put("requiredType", 1.0);
+        weights.put("objectOrigin", 1.0);
+        weights.put("surroundingExpression", 1.0);
+        weights.put("enclosingMethodReturnType", 1.0);
+        weights.put("enclosingMethodParameterSize", 1.0);
+        weights.put("enclosingMethodParameters", 1.0);
+        weights.put("enclosingMethodSuper", 1.0);
+
+        // Evaluate baseline weights
+        MethodCallRecommender recommender = new MethodCallRecommender(processor, persistence, weights);
+        evaluateRecommender("baseline", eventDirectory, zips, processor, completionProcessor, recommender);
+
+        // Evaluate with different weights
+        for (String weightName : weights.keySet()) {
+            for (double i = 0; i <= 2; i += 0.25) {
+
+                // We only want to generate the evaluation for weights 1,1,1,1,1,1,1,1 once.
+                if (i == 1) {
+                    continue;
+                }
+
+                weights.replace(weightName, i);
+                String name = weightName + "_" + i;
+                recommender = new MethodCallRecommender(processor, persistence, weights);
+                evaluateRecommender(name, eventDirectory, zips, processor, completionProcessor, recommender);
+            }
+
+            // Reset the weight
+            weights.replace(weightName, 1.0);
+        }
+    }
+
+    private static void evaluateRecommender(String name, String eventDirectory, Set<String> zips, ContextProcessor processor, ContextProcessor completionProcessor, MethodCallRecommender recommender) {
         List<EvaluationResult> evaluationResultList = new ArrayList<>();
+        int counter = 0;
         for (String zip : zips) {
             File zipFile = Paths.get(eventDirectory, zip).toFile();
-
             try (IReadingArchive ra = new ReadingArchive(zipFile)) {
                 while (ra.hasNext()) {
 
@@ -65,21 +98,20 @@ public class Evaluator {
                         continue;
                     }
 
-                    CompletionEvent ce = (CompletionEvent) e;
-                    Context c = ((CompletionEvent) e).context;
-
                     // We are only interested if the recommendation got applied
+                    CompletionEvent ce = (CompletionEvent) e;
                     if (!ce.getTerminatedState().name().equals("Applied")) {
                         continue;
                     }
 
-                    //
+                    // We are only interested in method completions
                     IProposal selection = ce.getLastSelectedProposal();
                     if (!(selection.getName() instanceof MethodName)) {
                         continue;
                     }
                     String selectedMethod = ((MethodName) selection.getName()).getName();
 
+                    Context c = ((CompletionEvent) e).context;
                     List<QuerySelection> completionEventQuerySelection = completionProcessor.run(c);
 
                     Set<Pair<IMemberName, SimilarityDto>> result = null;
@@ -105,20 +137,19 @@ public class Evaluator {
                             result = recommender.queryWithDetails(querySelections.get(indexes.get(indexes.size() - 1)).getQuery());
                         }
                     }
-
                     counter++;
                     evaluationResultList.add(new EvaluationResult(selectedMethod, result));
                 }
             }
-
-            logger.info(counter + " CompletionEvent processed");
+            logger.info(name + ": " +counter + " CompletionEvent processed");
         }
-        writeToCSV(evaluationResultList);
+        writeToCSV(name, evaluationResultList);
     }
 
-    private static void writeToCSV(List<EvaluationResult> evaluationResultList) {
+    private static void writeToCSV(String name, List<EvaluationResult> evaluationResultList) {
         try {
-            FileWriter fileWriter = new FileWriter("ASE_Evaluation.csv");
+            int linesCount = 1;
+            FileWriter fileWriter = new FileWriter("evaluations/ASE_Evaluation_" + name + ".csv");
 
             fileWriter.append("evaluated");
             fileWriter.append(",");
@@ -153,44 +184,46 @@ public class Evaluator {
                 if (resultSet == null) {
                     fileWriter.append("False");
                     fileWriter.append(",");
-                    fileWriter.append(selectedMethod);
+                    fileWriter.append('"' + selectedMethod + '"');
                 } else {
                     fileWriter.append("True");
                     fileWriter.append(",");
-                    fileWriter.append(selectedMethod);
+                    fileWriter.append('"' + selectedMethod + '"');
                     Iterator<Pair<IMemberName, SimilarityDto>> iterator = resultSet.iterator();
                     int count = 0;
                     while (iterator.hasNext() && count < 10) {
                         Pair<IMemberName, SimilarityDto> result = iterator.next();
-                        String fullName = result.getKey().getFullName();
+                        String methodName = result.getKey().getName();
                         SimilarityDto similarityDto = result.getValue();
 
                         fileWriter.append(",");
-                        fileWriter.append(fullName);
+                        fileWriter.append('"' + methodName + '"');
                         fileWriter.append(",");
                         fileWriter.append(similarityDto.similarity.toString());
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similarityReceiverType).toString());
+                        fileWriter.append(Double.toString(similarityDto.similarityReceiverType));
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similarityRequiredType).toString());
+                        fileWriter.append(Double.toString(similarityDto.similarityRequiredType));
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similarityObjectOrigin).toString());
+                        fileWriter.append(Double.toString(similarityDto.similarityObjectOrigin));
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similaritySurroundingExpression).toString());
+                        fileWriter.append(Double.toString(similarityDto.similaritySurroundingExpression));
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similarityEnclosingMethodReturnType).toString());
+                        fileWriter.append(Double.toString(similarityDto.similarityEnclosingMethodReturnType));
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similarityEnclosingMethodParameterSize).toString());
+                        fileWriter.append(Double.toString(similarityDto.similarityEnclosingMethodParameterSize));
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similarityEnclosingMethodParameters).toString());
+                        fileWriter.append(Double.toString(similarityDto.similarityEnclosingMethodParameters));
                         fileWriter.append(",");
-                        fileWriter.append(new Double(similarityDto.similarityEnclosingMethodSuper).toString());
+                        fileWriter.append(Double.toString(similarityDto.similarityEnclosingMethodSuper));
 
                         count++;
                     }
                 }
                 fileWriter.append("\n");
+                linesCount += 1;
             }
+            fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

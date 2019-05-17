@@ -122,6 +122,6 @@ buildNumber.properties
 .mvn/wrapper/maven-wrapper.jar
 
 # Evaluation Results
-ASE_Evaluation.csv
+evaluations/*
 
 # End of https://www.gitignore.io/api/java,maven,intellij
