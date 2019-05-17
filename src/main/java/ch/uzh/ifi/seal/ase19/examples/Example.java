@@ -5,7 +5,6 @@ import ch.uzh.ifi.seal.ase19.core.IPersistenceManager;
 import ch.uzh.ifi.seal.ase19.core.InMemoryPersistenceManager;
 import ch.uzh.ifi.seal.ase19.core.models.*;
 import ch.uzh.ifi.seal.ase19.miner.ContextProcessor;
-import ch.uzh.ifi.seal.ase19.recommender.ExampleRecommender;
 import ch.uzh.ifi.seal.ase19.recommender.MethodCallRecommender;
 import com.google.common.io.Files;
 import org.apache.commons.lang3.tuple.Pair;
@@ -17,7 +16,7 @@ import java.util.Set;
 
 public class Example {
 
-    private static Logger logger = LogManager.getLogger(ExampleRecommender.class);
+    private static Logger logger = LogManager.getLogger(Example.class);
 
     public static void main(String[] args) {
         String modelDirectory = Files.createTempDir().getAbsolutePath();

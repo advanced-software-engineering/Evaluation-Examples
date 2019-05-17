@@ -15,7 +15,6 @@ import ch.uzh.ifi.seal.ase19.core.models.QuerySelection;
 import ch.uzh.ifi.seal.ase19.core.utils.IoHelper;
 import ch.uzh.ifi.seal.ase19.core.utils.SSTUtils;
 import ch.uzh.ifi.seal.ase19.miner.ContextProcessor;
-import ch.uzh.ifi.seal.ase19.recommender.ExampleRecommender;
 import ch.uzh.ifi.seal.ase19.recommender.MethodCallRecommender;
 import ch.uzh.ifi.seal.ase19.recommender.SimilarityDto;
 import ch.uzh.ifi.seal.ase19.utils.EvaluationResult;
@@ -31,7 +30,7 @@ import java.util.*;
 
 public class Evaluator {
 
-    private static Logger logger = LogManager.getLogger(ExampleRecommender.class);
+    private static Logger logger = LogManager.getLogger(Evaluator.class);
 
     public static void main(String[] args) {
         if (args.length < 1) {
