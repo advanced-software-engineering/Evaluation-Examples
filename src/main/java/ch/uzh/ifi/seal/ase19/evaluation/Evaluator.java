@@ -121,7 +121,7 @@ public class Evaluator {
                         String receiverType = SSTUtils.getFullyQualifiedNameWithoutGenerics(((MethodName) selection.getName()).getDeclaringType().getFullName());
                         query.setReceiverType(receiverType);
                         result = recommender.queryWithDetails(query);
-                    }else{
+                    } else {
                         List<QuerySelection> querySelections = processor.run(c);
                         List<Integer> indexes = new ArrayList<>();
                         for (int i = 0; i < querySelections.size(); i++) {
@@ -140,7 +140,7 @@ public class Evaluator {
                     evaluationResultList.add(new EvaluationResult(selectedMethod, result));
                 }
             }
-            logger.info(name + ": " +counter + " CompletionEvent processed");
+            logger.info(name + ": " + counter + " CompletionEvent processed");
         }
         writeToCSV(name, evaluationResultList);
     }

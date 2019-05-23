@@ -11,7 +11,7 @@ import java.util.List;
 
 public class CompletionEventContextProcessor extends ContextProcessor {
 
-    public CompletionEventContextProcessor(IPersistenceManager persistenceManager) {
+    CompletionEventContextProcessor(IPersistenceManager persistenceManager) {
         super(persistenceManager);
     }
 

@@ -8,17 +8,12 @@ import ch.uzh.ifi.seal.ase19.miner.ContextProcessor;
 import ch.uzh.ifi.seal.ase19.recommender.MethodCallRecommender;
 import com.google.common.io.Files;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Set;
 
-public class Example {
-
-    private static Logger logger = LogManager.getLogger(Example.class);
-
-    public static void main(String[] args) {
+class Example {
+    static void main(String[] args) {
         String modelDirectory = Files.createTempDir().getAbsolutePath();
 
         IPersistenceManager persistence = new InMemoryPersistenceManager(modelDirectory);
